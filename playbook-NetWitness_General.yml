@@ -1,0 +1,352 @@
+id: 05bf37c0-b6b4-498b-887a-5fe8708e2e49
+version: 8
+name: NetWitness General
+description: "#0106  \nExample of a generic netwitness-centric incident playbook.
+  \ Actual workflow needs to be added, but the skeleton so far is design to focus
+  on enrichment.  It requires some custom fields between it and it's sub playbooks:\n\n-
+  General Information Table (html)\n- User Associate Details (html)\n- Network Traffic
+  Summary (markdown)\n- Windows Login History (markdown)\n- Entity Type (list [IP
+  Address, User, Machnie])\n- Entity Value (string)\n\n"
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: 5b808a54-3e80-4180-86a8-94bcc435d01e
+    type: start
+    task:
+      id: 5b808a54-3e80-4180-86a8-94bcc435d01e
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "5"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 265,
+          "y": 50
+        }
+      }
+    note: false
+  "2":
+    id: "2"
+    taskid: ddc474d2-818c-4829-8ba3-a0d467774a22
+    type: title
+    task:
+      id: ddc474d2-818c-4829-8ba3-a0d467774a22
+      version: -1
+      name: HR System Lookup
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "3"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 50,
+          "y": 720
+        }
+      }
+    note: false
+  "3":
+    id: "3"
+    taskid: ac44101e-f437-4b7c-884a-0ac22119aed4
+    type: regular
+    task:
+      id: ac44101e-f437-4b7c-884a-0ac22119aed4
+      version: -1
+      name: HR User Record (placeholder)
+      description: Here is where the playbook could make a request to an external
+        system via the !rasterize command, and display the results in a field.
+      script: Rasterize|||rasterize
+      type: regular
+      iscommand: true
+      brand: Rasterize
+    nexttasks:
+      '#none#':
+      - "4"
+    scriptarguments:
+      height:
+        simple: 379px
+      type: {}
+      url:
+        simple: https://d14nnq46bdtl8d.cloudfront.net/static/master.31/images/features/employee-profil-ghr.png
+      width:
+        simple: 600px
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 50,
+          "y": 865
+        }
+      }
+    note: false
+  "4":
+    id: "4"
+    taskid: 915d7f36-13a6-47dc-84ea-d433023160a2
+    type: regular
+    task:
+      id: 915d7f36-13a6-47dc-84ea-d433023160a2
+      version: -1
+      name: Set User Associate Field
+      scriptName: LastImageToField
+      type: regular
+      iscommand: false
+      brand: ""
+    scriptarguments:
+      fieldname:
+        simple: userassociatedetails
+      orchestratorurl:
+        simple: ${inputs.nwourl}/entry/download/
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 50,
+          "y": 1040
+        }
+      }
+    note: false
+  "5":
+    id: "5"
+    taskid: f2bb9ca5-9d39-4668-8c3b-e9d0245b0c27
+    type: condition
+    task:
+      id: f2bb9ca5-9d39-4668-8c3b-e9d0245b0c27
+      version: -1
+      name: Is From NetWitness?
+      type: condition
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#default#':
+      - "23"
+      "yes":
+      - "22"
+    separatecontext: false
+    conditions:
+    - label: "yes"
+      condition:
+      - - operator: isExists
+          left:
+            value:
+              simple: incident.labels.id
+            iscontext: true
+    view: |-
+      {
+        "position": {
+          "x": 265,
+          "y": 195
+        }
+      }
+    note: false
+  "13":
+    id: "13"
+    taskid: 887ede2b-e50d-4ac2-80f2-0941c092873f
+    type: title
+    task:
+      id: 887ede2b-e50d-4ac2-80f2-0941c092873f
+      version: -1
+      name: Initialization Complete - Begin Run Book
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "14"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 720
+        }
+      }
+    note: false
+  "14":
+    id: "14"
+    taskid: 6b8ad97f-7d3a-497f-8c91-b48eebf80c1d
+    type: regular
+    task:
+      id: 6b8ad97f-7d3a-497f-8c91-b48eebf80c1d
+      version: -1
+      name: Manually Investigate and Review
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "24"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 865
+        }
+      }
+    note: false
+  "22":
+    id: "22"
+    taskid: 8d4f6bb9-c072-400d-88ab-5efa1af698a2
+    type: playbook
+    task:
+      id: 8d4f6bb9-c072-400d-88ab-5efa1af698a2
+      version: -1
+      name: Extract Info From NetWitness Alerts
+      playbookName: Extract Info From NetWitness Alerts
+      type: playbook
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "23"
+    scriptarguments:
+      netwitnessrespondurl:
+        simple: ${inputs.netwitnessrespondurl}
+      netwitnessurl:
+        simple: ${inputs.netwitnessurl}
+      nwourl:
+        simple: ${inputs.nwourl}
+    separatecontext: true
+    loop:
+      iscommand: false
+      exitCondition: ""
+      wait: 1
+    view: |-
+      {
+        "position": {
+          "x": 570,
+          "y": 360
+        }
+      }
+    note: false
+  "23":
+    id: "23"
+    taskid: 6e45d3b1-3053-4fc3-84c4-ebb4bc78598f
+    type: playbook
+    task:
+      id: 6e45d3b1-3053-4fc3-84c4-ebb4bc78598f
+      version: -1
+      name: NetWitness Enrichment
+      playbookName: NetWitness Enrichment
+      type: playbook
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "2"
+      - "13"
+    scriptarguments:
+      netwitnessrespondurl:
+        simple: ${inputs.netwitnessrespondurl}
+      netwitnessurl:
+        simple: ${inputs.netwitnessurl}
+      nwourl:
+        simple: ${inputs.nwourl}
+    separatecontext: true
+    loop:
+      iscommand: false
+      exitCondition: ""
+      wait: 1
+    view: |-
+      {
+        "position": {
+          "x": 265,
+          "y": 515
+        }
+      }
+    note: false
+  "24":
+    id: "24"
+    taskid: 686c687b-66f1-4720-8915-62a7f7edbbe1
+    type: title
+    task:
+      id: 686c687b-66f1-4720-8915-62a7f7edbbe1
+      version: -1
+      name: Continue Playbook as Needed
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "25"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 1120
+        }
+      }
+    note: false
+  "25":
+    id: "25"
+    taskid: df1091ad-4736-46e6-837f-c378c9839a7e
+    type: title
+    task:
+      id: df1091ad-4736-46e6-837f-c378c9839a7e
+      version: -1
+      name: Complete
+      type: title
+      iscommand: false
+      brand: ""
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 1320
+        }
+      }
+    note: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 1335,
+        "width": 900,
+        "x": 50,
+        "y": 50
+      }
+    }
+  }
+inputs:
+- key: nwourl
+  value:
+    simple: https://192.168.1.153
+  required: false
+  description: ""
+- key: netwitnessurl
+  value:
+    simple: https://192.168.1.129/investigation/12/navigate/query/
+  required: false
+  description: ""
+- key: netwitnessrespondurl
+  value:
+    simple: https://192.168.1.129/respond/incident/
+  required: false
+  description: ""
+- key: imageroot
+  value:
+    simple: http://192.168.1.153/
+  required: false
+  description: ""
+outputs:
+- contextPath: nwourl
+  description: https://10.171.45.28/
+  type: string
+- contextPath: netwitnessurl
+  description: https://10.193.120.18/investigation/33/navigate/query/
+  type: string
+- contextPath: netwitnessrespondurl
+  description: https://10.193.120.18/respond/incident/
+  type: unknown

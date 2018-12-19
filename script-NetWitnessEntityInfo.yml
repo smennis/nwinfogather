@@ -1,0 +1,166 @@
+commonfields:
+  id: d9469e7f-2a69-425c-8357-75bb5efca018
+  version: 6
+name: NetWitnessEntityInfo
+script: |-
+  # NetWitnessEntityInfo
+  # Given an entity(user, ip, machine) try to derive the other two.
+  # Date: 9/22/2018
+  # Author: Sean Ennis, RSA  sean.ennis@rsa.com
+  # Context: #0106
+
+  import urllib
+
+  ########### FUNCTION - Simple list deduplication
+  def dedupList(list):
+      finalist=[]
+      for element in list:
+          if element not in finalist:
+              finalist.append(element)
+      return finalist
+  ########### END FUNCTION
+
+  ########### FUNCTION - Get latest values for entity
+  def getLatest(selectkey, wherekey, wherevalue, additionalclause, lasthours):
+
+      # add quotes to comma separated wherevalue
+      wherevalue = wherevalue.replace(',','\',\'')
+      query = "SELECT " + selectkey + " WHERE " + wherekey + "=" + wherevalue + " && " + selectkey + " exists"
+      if "=" in additionalclause:
+          query += " && " + additionalclause
+
+      threshold = 1000 # don't need many values
+      tmpList = []
+      returnItems = []
+
+      res = demisto.executeCommand("netwitness-query", {'query': query, 'lastHours': lasthours, 'threshold':threshold})
+      if res[0]['Contents'] != "No results found.":
+          for item in res[0]['Contents']:
+              if 'results' in item:
+                  tmpList.extend(item['results']['fields'])
+          for record in tmpList:
+              if record['value'] not in returnItems:
+                  returnItems.append(record['value'])
+          returnString = ','.join(returnItems)
+          return returnString
+      else:
+          return "undetermined"
+
+  ########### END FUNCTION
+  additionalipclause=""
+  additionaluserclause=""
+  additionalmachineclause=""
+
+  # Arugments
+  entityvalue = demisto.args()['entityvalue']
+  entitytype = demisto.args()['entitytype']
+  lasthours = demisto.args()['lasthours']
+  if demisto.get(demisto.args(), 'additionalipclause'):
+      additionalipclause = demisto.args()['additionalipclause']
+  if demisto.get(demisto.args(), 'additionalmachineclause'):
+      additionalmachineclause = demisto.args()['additionalmachineclause']
+  if demisto.get(demisto.args(), 'additionaluserclause'):
+      additionaluserclause = demisto.args()['additionaluserclause']
+
+  query = ""
+  entityInfo = {}
+
+  entityInfo[entitytype] = entityvalue
+
+  # Based on what is given, run the getLatest function.  Function is getLatest(selectkey, wherekey, wherevalue, additionalclause)
+  # Play with these as data sources dictate.
+  if entitytype=='User':
+      entityInfo['Machine'] = getLatest('host.src', 'user.dst', "'" + entityvalue + "'", additionalmachineclause, lasthours)
+      entityInfo['IP Address'] = getLatest('ip.src', 'user.dst', "'" + entityvalue + "'", additionalipclause, lasthours)
+  elif entitytype=='Machine':
+      entityInfo['User'] = getLatest('user.dst', 'host.src', "'" + entityvalue + "'", additionaluserclause, lasthours)
+      entityInfo['IP Address'] = getLatest('ip.src', 'user.dst', "'" + entityInfo['User'] + "'", additionalipclause, lasthours)
+  elif entitytype=='IP Address':
+      entityInfo['Machine'] = getLatest('host.src', 'ip.src', entityvalue, additionalmachineclause, lasthours)
+      entityInfo['User'] = getLatest('user.dst', 'host.src', "'" + entityInfo['Machine'] + "'", additionaluserclause, lasthours)
+
+  entityInfo['Last IP'] = entityInfo['IP Address'].split(",")[0]
+
+  # special treatment for users - extract primary (First without a $ for now)
+  tmpUsers = entityInfo['User'].split(',')
+  entityInfo['All Users'] = entityInfo['User']
+  for user in tmpUsers:
+      if '$' not in user:
+          entityInfo['User'] = user
+          break
+
+
+  demisto.results({
+      'Type': 1,
+      'Contents': 'Updated Entity Info',
+      'ContentsFormat': formats['text'],
+      'EntryContext': entityInfo })
+
+
+  htmlTable = "<html><body>"
+  htmlTable += "<img src=\"http://www.stickpng.com/assets/images/585e4bf3cb11b227491c339a.png\" height=\"20\" width=\"20\"> &nbsp;&nbsp;<b>" + entityInfo['User'] + "</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;History: " + entityInfo['All Users']
+  htmlTable += "<hr>"
+  htmlTable += "<img src=\"https://img.clipartxtras.com/4f0fcbc010a76802be04558b1d8faae4_clipart-laptop-computer-icon-laptop-clipart-icon_2400-1704.png\" height=\"18\" width=\"23\"><b>&nbsp;&nbsp; " + entityInfo['Machine'] + "</b>"
+  htmlTable += "<hr>"
+  htmlTable += "<img src=\"https://www.itvantix.com/pub/media/wysiwyg/itvantix/cableicon.png\" height=\"20\" width=\"20\"> &nbsp;&nbsp;<b>" + entityInfo['Last IP'] + "</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;History: " + entityInfo['IP Address']
+  htmlTable += "</body></html>"
+  demisto.results({
+      "Type": 1,
+      "Contents": "Created HTML Table for Entity Info.",
+      "ContentsFormat": "text",
+      "EntryContext": {'htmlTableEntity': htmlTable}
+      })
+
+  # Have an mdTable option, but I find HTML looks better in this case.
+  #mdTable = ""
+  #mdTable += "\n|User & Host Information|"
+  #mdTable += "\n|"
+  #mdTable += ':-----|'
+  #mdTable += "\nPrimary Username: " + entityInfo['User']
+  #mdTable += "\nAll Username(s): " + entityInfo['All Users']
+  #mdTable += "\nHostname: " + entityInfo['Machine']
+  #mdTable += "\nLast Known IP: " + entityInfo['Last IP']
+  #mdTable += "\nIP Address History (" + str(lasthours) + " hours): " + entityInfo['IP Address']
+  #mdTable += "\n"
+  #demisto.results({
+  #    "Type": 1,
+  #    "Contents": "Created Markdown Table for Entity Info.",
+  #    "ContentsFormat": "json",
+  #    "EntryContext": {'mdTableEntity': mdTable},
+  #    "HumanReadable": mdTable })
+type: python
+tags: []
+comment: |-
+  If given a username, try to determine the IP and hostname.
+  If given a hostname, try to determine the IP and username
+  If given an IP, try to determine the hostname and username.
+  This data will be used to build other queries (Eg. given a username, what network traffic have we seen?)
+enabled: true
+args:
+- name: entitytype
+  required: true
+- name: entityvalue
+  required: true
+- name: additionalipclause
+  description: In netwitness query syntax, this will be added to the query when trying
+    to derive the IP address (eg. reference.id='4624' && ip.src=10.0.0.0/8)
+- name: additionaluserclause
+  description: In netwitness query syntax, this will be added to the query when trying
+    to derive the IP address (eg. reference.id='4624' && service.name='NTLM v1') would  only
+    look for the user name within those conditions
+- name: additionalmachineclause
+  description: In netwitness query syntax, this will be added to the query when trying
+    to derive the IP address (eg. reference.id='4624' && service.name='NTLM v1') would  only
+    look for the machine name within those conditions (eg. specific logs/events)
+- name: lasthours
+  required: true
+  description: how many hours to look at to determine entities
+outputs:
+- contextPath: User
+- contextPath: Machine
+- contextPath: Last IP
+- contextPath: mdTableEntity
+- contextPath: IP Address
+- contextPath: htmlTableEntity
+scripttarget: 0
+runonce: false

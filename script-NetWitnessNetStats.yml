@@ -1,0 +1,120 @@
+commonfields:
+  id: 048b1673-c561-4aef-88a2-923ba38a481e
+  version: 7
+name: NetWitnessNetStats
+script: |+
+  # NetWitnessNetStats
+  # Take arbitrary netwitness queries, produce a table of stats with links.  Proof of concept - production code should be generalized to avoid hard coding query params/fields
+  # Date: 9/22/2018
+  # Author: Sean Ennis, RSA  sean.ennis@rsa.com
+  # Context: #0106
+
+  import urllib
+
+  whereclause = demisto.args()['whereclause']
+  netwitnessurl = demisto.args()['netwitnessurl']
+  size=1000 # safety rail
+  if demisto.get(demisto.args(), 'lasthours'):
+      lastHours = demisto.args()['lasthours']
+  else:
+      lastHours = 24 # default to 6 hour window if no value given
+
+  tmpTable = {}
+  tmpList = []
+  mdTable = ""
+  servicealiases={80:'HTTP',443:'SSL',25:'SMTP',21:'FTP',22:'SSH',3389:'RDP',0:'OTHER'}
+  tabletitle = "Netwitness Packet Traffic Summary - Last " + str(lastHours) + " hours for " + whereclause
+
+  totalsize = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(size) where " + whereclause + " && service exists", "lastHours": lastHours, "size": size })
+
+  # If there are results, get some stats...
+  if totalsize[0]['Contents'] != "No results found.":
+      if totalsize[0]['Contents']['results']['fields'][0]['value'] != '0':
+          totalinbound = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(requestpayload) where " + whereclause + " && service exists && direction='inbound'", "lastHours": lastHours, "size": size })
+          totaloutbound = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(responsepayload) where " + whereclause + " && service exists && direction='outbound'", "lastHours": lastHours, "size": size })
+          totalsent = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(requestpayload) where " + whereclause + " && service exists", "lastHours": lastHours, "size": size })
+          totalreceived = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(responsepayload) where " + whereclause + " && service exists", "lastHours": lastHours, "size": size })
+          totalhttp = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(size) where " + whereclause + " && service=80", "lastHours": lastHours, "size": size })
+          totalssl = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(size) where " + whereclause + " && service=443", "lastHours": lastHours, "size": size })
+          totalftp = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(size) where " + whereclause + " && service=21", "lastHours": lastHours, "size": size })
+          totalrdp = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(size) where " + whereclause + " && service=3389", "lastHours": lastHours, "size": size })
+          totalssh = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(size) where " + whereclause + " && service=22", "lastHours": lastHours, "size": size })
+          totalsmtp = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(size) where " + whereclause + " && service=25", "lastHours": lastHours, "size": size })
+          totalother = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(size) where " + whereclause + " && service=0", "lastHours": lastHours, "size": size })
+          totalirc = demisto.executeCommand("netwitness-query", { "query": "SELECT count(sessionid),sum(size) where " + whereclause + " && service=6667", "lastHours": lastHours, "size": size })
+          totalpasswords = demisto.executeCommand("netwitness-query", { "query": "SELECT count(password) where " + whereclause + " && password exists", "lastHours": lastHours, "size": size })
+          totalbinaries = demisto.executeCommand("netwitness-query", { "query": "SELECT count(filetype),sum(size) where " + whereclause + " && filetype exists && filetype='windows executable' && service exists && service!=443,22", "lastHours": lastHours, "size": size })
+
+          results= {"totalsessions":totalsize[0]['Contents']['results']['fields'][0]['value'],
+                      "totalbytes":totalsize[0]['Contents']['results']['fields'][1]['value'],
+                      "totalsbytes":totalsent[0]['Contents']['results']['fields'][1]['value'],
+                      "totalrbytes":totalreceived[0]['Contents']['results']['fields'][1]['value'],
+                      "totalhttp":totalhttp[0]['Contents']['results']['fields'][0]['value'],
+                      "totalhttpbytes":totalhttp[0]['Contents']['results']['fields'][1]['value'],
+                      "totalssl":totalssl[0]['Contents']['results']['fields'][0]['value'],
+                      "totalsslbytes":totalssl[0]['Contents']['results']['fields'][1]['value'],
+                      "totalftp":totalftp[0]['Contents']['results']['fields'][0]['value'],
+                      "totalftpbytes":totalftp[0]['Contents']['results']['fields'][1]['value'],
+                      "totalrdp":totalrdp[0]['Contents']['results']['fields'][0]['value'],
+                      "totalrdpbytes":totalrdp[0]['Contents']['results']['fields'][1]['value'],
+                      "totalssh":totalssh[0]['Contents']['results']['fields'][0]['value'],
+                      "totalsshbytes":totalssh[0]['Contents']['results']['fields'][1]['value'],
+                      "totalsmtp":totalsmtp[0]['Contents']['results']['fields'][0]['value'],
+                      "totalsmtpbytes":totalsmtp[0]['Contents']['results']['fields'][1]['value'],
+                      "totalirc":totalirc[0]['Contents']['results']['fields'][0]['value'],
+                      "totalircbytes":totalirc[0]['Contents']['results']['fields'][1]['value'],
+                      "totalother":totalother[0]['Contents']['results']['fields'][0]['value'],
+                      "totalotherbytes":totalother[0]['Contents']['results']['fields'][1]['value'],
+                      "totalpasswords":totalpasswords[0]['Contents']['results']['fields'][0]['value'],
+                      "totalbinaries":totalbinaries[0]['Contents']['results']['fields'][0]['value'],
+                      "totalbinariesbytes":totalbinaries[0]['Contents']['results']['fields'][1]['value'],
+                  }
+
+          # Build markdown table from results (should put this into a Function at some point)
+          bufferStr = ""
+          for x in range(40):   # this is just a display hack to condense the table
+              bufferStr += "&nbsp;"
+
+          mdTable += "\n|Network Stats (last" + str(lastHours) + " hours)|Count|Approx. Bytes (MB)|Pivot Link" + bufferStr + "|"
+          mdTable += "\n|"
+          mdTable += ':-----|'
+          mdTable += ':-----|'
+          mdTable += ':-----|'
+          mdTable += ':-----|'
+          #mdTable += "\nTotal Traffic|" + results['totalsessions'] + "|" + str(round(float(results['totalbytes'])/1048576,2)) + "|" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && service exists") + ")|"
+          mdTable += "\nTotal Payload Sent||" + str(round(float(results['totalsbytes'])/1048576,2)) + "|" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && service exists") + ")|"
+          mdTable += "\nTotal Payload Received||" + str(round(float(results['totalrbytes'])/1048576,2)) + "|" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && service exists") + ")|"
+          mdTable += "\nHTTP|" + results['totalhttp'] + "|" + str(round(float(results['totalhttpbytes'])/1048576,2)) + "|" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && service=80") + ")|"
+          mdTable += "\nSSL|" + results['totalssl'] + "|" + str(round(float(results['totalsslbytes'])/1048576,2)) + "|" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && service=443") + ")|"
+          mdTable += "\nRDP|" + results['totalrdp'] + "|" + str(round(float(results['totalrdpbytes'])/1048576,2)) + "|" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && service=3389") + ")|"
+          mdTable += "\nFTP|" + results['totalftp'] + "|" + str(round(float(results['totalftpbytes'])/1048576,2)) + "|" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && service=21") + ")|"
+          mdTable += "\nSMTP|" + results['totalsmtp'] + "|" + str(round(float(results['totalsmtpbytes'])/1048576,2)) + "|" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && service=25") + ")|"
+          mdTable += "\nSSH|" + results['totalssh'] + "|" + str(round(float(results['totalsshbytes'])/1048576,2)) + "|" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && service=22") + ")|"
+          mdTable += "\nOTHER|" + results['totalother'] + "|" + str(round(float(results['totalotherbytes'])/1048576,2)) + "|" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && service=0") + ")|"
+          mdTable += "\nCleartext Passwords|" + results['totalpasswords'] + "||" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && password exists") + ")|"
+          mdTable += "\nTransmitted Binaries|" + results['totalbinaries'] + "|" + str(round(float(results['totalbinariesbytes'])/1048576,2)) + "|" + "[Pivot to NW](" + netwitnessurl + urllib.quote_plus(whereclause + " && filetype exists && filetype='windows executable' && service exists && service!=443,22") + ")|"
+          mdTable += "\n\n\n"
+
+          demisto.results({
+              "Type": 1,
+              "Contents": "Created Markdown Table for NetStats.",
+              "ContentsFormat": "json",
+              "EntryContext": {'mdTableNetwork': mdTable},
+              "HumanReadable": mdTable })
+
+type: python
+tags: []
+comment: Takes the standard netwitnes query command and returns results in a nicely
+  formatted MD table.
+enabled: true
+args:
+- name: whereclause
+  required: true
+- name: lasthours
+- name: netwitnessurl
+  required: true
+  description: This is for building the links... should be in the format https://<hostnameOrIP>/<deviceID>/navigate/query/
+outputs:
+- contextPath: mdTableNetwork
+scripttarget: 0
+runonce: false

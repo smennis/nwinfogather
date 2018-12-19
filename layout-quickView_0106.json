@@ -1,0 +1,153 @@
+{
+	"typeId": "ShibbieCorp General",
+	"kind": "quickView",
+	"layout": {
+		"id": "ShibbieCorp General",
+		"version": 2,
+		"modified": "2018-09-25T13:29:21.622227973-07:00",
+		"name": "",
+		"sections": [
+			{
+				"id": "",
+				"version": 0,
+				"modified": "0001-01-01T00:00:00Z",
+				"name": "Enrichment Snapshot",
+				"type": "",
+				"isVisible": true,
+				"readOnly": false,
+				"fields": [
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_generalinformationtable",
+						"isVisible": true
+					}
+				],
+				"description": "",
+				"query": null,
+				"queryType": ""
+			},
+			{
+				"id": "",
+				"version": 0,
+				"modified": "0001-01-01T00:00:00Z",
+				"name": "Basic Information",
+				"type": "",
+				"isVisible": true,
+				"readOnly": false,
+				"fields": [
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_type",
+						"isVisible": true
+					},
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_severity",
+						"isVisible": true
+					},
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_owner",
+						"isVisible": true
+					},
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_dbotstatus",
+						"isVisible": true
+					},
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_dbotsource",
+						"isVisible": true
+					},
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_playbookid",
+						"isVisible": true
+					},
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_phase",
+						"isVisible": true
+					},
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_roles",
+						"isVisible": true
+					}
+				],
+				"description": "",
+				"query": null,
+				"queryType": ""
+			},
+			{
+				"id": "",
+				"version": 0,
+				"modified": "0001-01-01T00:00:00Z",
+				"name": "Timeline Information",
+				"type": "",
+				"isVisible": true,
+				"readOnly": false,
+				"fields": [
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_dbotcreated",
+						"isVisible": true
+					},
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_occurred",
+						"isVisible": true
+					},
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_dbotduedate",
+						"isVisible": true
+					},
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_dbotmodified",
+						"isVisible": true
+					},
+					{
+						"id": "",
+						"version": 0,
+						"modified": "0001-01-01T00:00:00Z",
+						"fieldId": "incident_dbottotaltime",
+						"isVisible": true
+					}
+				],
+				"description": "",
+				"query": null,
+				"queryType": ""
+			}
+		],
+		"system": false
+	}
+}

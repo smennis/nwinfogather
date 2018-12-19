@@ -1,0 +1,734 @@
+id: a56454ba-f27c-44c0-8fa3-b5021e0f597b
+version: 9
+name: Extract Info From NetWitness Alerts
+description: |
+  #0106
+
+  Extract entity info from consituent alerts.
+
+  Requires custom fields:
+    - NetWitness Alert Summary. Type: HTML
+    - Entity Type. Type List [User, Machine, IP Address]
+   - Entity Value. Type: String
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: ada99d33-a7e0-41e5-8935-e6f85c34603b
+    type: start
+    task:
+      id: ada99d33-a7e0-41e5-8935-e6f85c34603b
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "1"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 50
+        }
+      }
+    note: false
+  "1":
+    id: "1"
+    taskid: fa01ba29-3d71-441b-8a4c-a6687d77fef8
+    type: regular
+    task:
+      id: fa01ba29-3d71-441b-8a4c-a6687d77fef8
+      version: -1
+      name: NetWitness Alert Extraction
+      script: RSA NetWitness v11.1|||netwitness-get-alerts
+      type: regular
+      iscommand: true
+      brand: RSA NetWitness v11.1
+    nexttasks:
+      '#none#':
+      - "2"
+      - "8"
+    scriptarguments:
+      incidentId:
+        complex:
+          root: incident
+          accessor: labels.id
+          transformers:
+          - operator: StripChars
+            args:
+              chars:
+                value:
+                  simple: '"'
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 195
+        }
+      }
+    note: false
+  "2":
+    id: "2"
+    taskid: f79693a6-ef49-49dc-804c-5f1bcc9330cd
+    type: condition
+    task:
+      id: f79693a6-ef49-49dc-804c-5f1bcc9330cd
+      version: -1
+      name: user.dst exists
+      type: condition
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#default#':
+      - "4"
+      "yes":
+      - "3"
+    separatecontext: false
+    conditions:
+    - label: "yes"
+      condition:
+      - - operator: isNotEmpty
+          left:
+            value:
+              simple: NetWitness.Alerts.events.destination.user.username
+            iscontext: true
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 370
+        }
+      }
+    note: false
+  "3":
+    id: "3"
+    taskid: 78d46949-01b1-4799-8426-24e64c8f0b14
+    type: regular
+    task:
+      id: 78d46949-01b1-4799-8426-24e64c8f0b14
+      version: -1
+      name: Set Entity Type User
+      script: Builtin|||setIncident
+      type: regular
+      iscommand: true
+      brand: Builtin
+    nexttasks:
+      '#none#':
+      - "7"
+    scriptarguments:
+      addLabels: {}
+      app: {}
+      assetid: {}
+      attachmentcount: {}
+      attachmentextension: {}
+      attachmenthash: {}
+      attachmentid: {}
+      attachmentname: {}
+      attachmentsize: {}
+      attachmenttype: {}
+      bugtraq: {}
+      customFields: {}
+      cve: {}
+      cvss: {}
+      dest: {}
+      destntdomain: {}
+      details: {}
+      duration: {}
+      emailbcc: {}
+      emailbody: {}
+      emailbodyformat: {}
+      emailbodyhtml: {}
+      emailcc: {}
+      emailclientname: {}
+      emailfrom: {}
+      emailinreplyto: {}
+      emailkeywords: {}
+      emailmessageid: {}
+      emailreceived: {}
+      emailreplyto: {}
+      emailreturnpath: {}
+      emailsenderip: {}
+      emailsize: {}
+      emailsource: {}
+      emailsubject: {}
+      emailto: {}
+      emailtocount: {}
+      emailurlclicked: {}
+      entitytype:
+        simple: User
+      entityvalue:
+        simple: ${NetWitness.Alerts.events.destination.user.username}
+      filehash: {}
+      filename: {}
+      filepath: {}
+      generalinformation: {}
+      hostip: {}
+      hostiphistory: {}
+      hostname: {}
+      id: {}
+      labels: {}
+      machinethreatsdetected: {}
+      malwarefamily: {}
+      name: {}
+      networktrafficsummary: {}
+      occurred: {}
+      owner: {}
+      phase: {}
+      replacePlaybook: {}
+      roles: {}
+      severity: {}
+      signature: {}
+      sla: {}
+      src: {}
+      srcntdomain: {}
+      srcuser: {}
+      systems: {}
+      timewindow: {}
+      type: {}
+      user: {}
+      userassociatedetails: {}
+      username: {}
+      vendorid: {}
+      vendorproduct: {}
+      vulnerabilitycategory: {}
+      windowsloginhistory: {}
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 615
+        }
+      }
+    note: false
+  "4":
+    id: "4"
+    taskid: 7bd0bf56-8043-4248-8e28-69cb93e0bc45
+    type: condition
+    task:
+      id: 7bd0bf56-8043-4248-8e28-69cb93e0bc45
+      version: -1
+      name: user.dst !exists, check ip.src
+      type: condition
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#default#':
+      - "6"
+      "yes":
+      - "5"
+    separatecontext: false
+    conditions:
+    - label: "yes"
+      condition:
+      - - operator: isNotEmpty
+          left:
+            value:
+              simple: NetWitness.Alerts.events.source.device.ipAddress
+            iscontext: true
+    view: |-
+      {
+        "position": {
+          "x": 911,
+          "y": 615
+        }
+      }
+    note: false
+  "5":
+    id: "5"
+    taskid: 2fdbd594-f0c9-4356-8556-f5dacb8647e1
+    type: regular
+    task:
+      id: 2fdbd594-f0c9-4356-8556-f5dacb8647e1
+      version: -1
+      name: Set Entity Type IP
+      script: Builtin|||setIncident
+      type: regular
+      iscommand: true
+      brand: Builtin
+    nexttasks:
+      '#none#':
+      - "7"
+    scriptarguments:
+      addLabels: {}
+      app: {}
+      assetid: {}
+      attachmentcount: {}
+      attachmentextension: {}
+      attachmenthash: {}
+      attachmentid: {}
+      attachmentname: {}
+      attachmentsize: {}
+      attachmenttype: {}
+      bugtraq: {}
+      customFields: {}
+      cve: {}
+      cvss: {}
+      dest: {}
+      destntdomain: {}
+      details: {}
+      duration: {}
+      emailbcc: {}
+      emailbody: {}
+      emailbodyformat: {}
+      emailbodyhtml: {}
+      emailcc: {}
+      emailclientname: {}
+      emailfrom: {}
+      emailinreplyto: {}
+      emailkeywords: {}
+      emailmessageid: {}
+      emailreceived: {}
+      emailreplyto: {}
+      emailreturnpath: {}
+      emailsenderip: {}
+      emailsize: {}
+      emailsource: {}
+      emailsubject: {}
+      emailto: {}
+      emailtocount: {}
+      emailurlclicked: {}
+      entitytype:
+        simple: IP Address
+      entityvalue:
+        simple: ${NetWitness.Alerts.events.[0].source.device.ipAddress}
+      filehash: {}
+      filename: {}
+      filepath: {}
+      generalinformation: {}
+      hostip: {}
+      hostiphistory: {}
+      hostname: {}
+      id: {}
+      labels: {}
+      machinethreatsdetected: {}
+      malwarefamily: {}
+      name: {}
+      networktrafficsummary: {}
+      occurred: {}
+      owner: {}
+      phase: {}
+      replacePlaybook: {}
+      roles: {}
+      severity: {}
+      signature: {}
+      sla: {}
+      src: {}
+      srcntdomain: {}
+      srcuser: {}
+      systems: {}
+      timewindow: {}
+      type: {}
+      user: {}
+      userassociatedetails: {}
+      username: {}
+      vendorid: {}
+      vendorproduct: {}
+      vulnerabilitycategory: {}
+      windowsloginhistory: {}
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 911,
+          "y": 830
+        }
+      }
+    note: false
+  "6":
+    id: "6"
+    taskid: b191cca4-99aa-4c8d-8f7d-b7caf475940e
+    type: regular
+    task:
+      id: b191cca4-99aa-4c8d-8f7d-b7caf475940e
+      version: -1
+      name: Cannot Extract Entity - Set as Undefined
+      script: Builtin|||setIncident
+      type: regular
+      iscommand: true
+      brand: Builtin
+    nexttasks:
+      '#none#':
+      - "7"
+    scriptarguments:
+      addLabels: {}
+      app: {}
+      assetid: {}
+      attachmentcount: {}
+      attachmentextension: {}
+      attachmenthash: {}
+      attachmentid: {}
+      attachmentname: {}
+      attachmentsize: {}
+      attachmenttype: {}
+      bugtraq: {}
+      customFields: {}
+      cve: {}
+      cvss: {}
+      dest: {}
+      destntdomain: {}
+      details: {}
+      duration: {}
+      emailbcc: {}
+      emailbody: {}
+      emailbodyformat: {}
+      emailbodyhtml: {}
+      emailcc: {}
+      emailclientname: {}
+      emailfrom: {}
+      emailinreplyto: {}
+      emailkeywords: {}
+      emailmessageid: {}
+      emailreceived: {}
+      emailreplyto: {}
+      emailreturnpath: {}
+      emailsenderip: {}
+      emailsize: {}
+      emailsource: {}
+      emailsubject: {}
+      emailto: {}
+      emailtocount: {}
+      emailurlclicked: {}
+      entitytype:
+        simple: undefined
+      entityvalue:
+        simple: undefined
+      filehash: {}
+      filename: {}
+      filepath: {}
+      generalinformation: {}
+      hostip: {}
+      hostiphistory: {}
+      hostname: {}
+      id: {}
+      labels: {}
+      machinethreatsdetected: {}
+      malwarefamily: {}
+      name: {}
+      networktrafficsummary: {}
+      occurred: {}
+      owner: {}
+      phase: {}
+      replacePlaybook: {}
+      roles: {}
+      severity: {}
+      signature: {}
+      sla: {}
+      src: {}
+      srcntdomain: {}
+      srcuser: {}
+      systems: {}
+      timewindow: {}
+      type: {}
+      user: {}
+      userassociatedetails: {}
+      username: {}
+      vendorid: {}
+      vendorproduct: {}
+      vulnerabilitycategory: {}
+      windowsloginhistory: {}
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 1316,
+          "y": 830
+        }
+      }
+    note: false
+  "7":
+    id: "7"
+    taskid: 7ac7a23a-a203-4460-80a7-e16c94b49218
+    type: title
+    task:
+      id: 7ac7a23a-a203-4460-80a7-e16c94b49218
+      version: -1
+      name: Done
+      type: title
+      iscommand: false
+      brand: ""
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 1051
+        }
+      }
+    note: false
+  "8":
+    id: "8"
+    taskid: 9a6403bf-d92e-418f-8594-ea659c4ee284
+    type: regular
+    task:
+      id: 9a6403bf-d92e-418f-8594-ea659c4ee284
+      version: -1
+      name: Set Alert Table in Summary
+      script: Builtin|||setIncident
+      type: regular
+      iscommand: true
+      brand: Builtin
+    scriptarguments:
+      accountrep: {}
+      accountse: {}
+      activeincidents: {}
+      addLabels: {}
+      additionalnetwitnesslinks: {}
+      aplocation: {}
+      apname: {}
+      app: {}
+      archerincidentid: {}
+      assetid: {}
+      assetsidentified: {}
+      attachmentcount: {}
+      attachmentextension: {}
+      attachmenthash: {}
+      attachmentid: {}
+      attachmentname: {}
+      attachmentsize: {}
+      attachmenttype: {}
+      bhincidentsource: {}
+      bhincidentstatus: {}
+      bhincidenttype: {}
+      bhlocation: {}
+      bhtest: {}
+      binariesseen: {}
+      binariestransmitted: {}
+      binariestransmittedtotalsizekb: {}
+      binariestransmittedtotalsizemb: {}
+      binaryblob: {}
+      browsinghistory: {}
+      browsinghistoryattachment: {}
+      bssid: {}
+      bugtraq: {}
+      classroom: {}
+      cleartextpasswordstransmitted: {}
+      clientmacaddress: {}
+      clientos: {}
+      companydomain: {}
+      companyname: {}
+      customFields: {}
+      cve: {}
+      cvss: {}
+      deleteEmptyField: {}
+      dest: {}
+      desthostblob: {}
+      destinationip: {}
+      destipblob: {}
+      destntdomain: {}
+      details: {}
+      direction: {}
+      dnssessioncount: {}
+      dnstotalsessioncount: {}
+      dnstotalsessionsizekb: {}
+      dnstotalsessionsizemb: {}
+      duration: {}
+      emailbcc: {}
+      emailbody: {}
+      emailbodyformat: {}
+      emailbodyhtml: {}
+      emailcc: {}
+      emailclientname: {}
+      emailfrom: {}
+      emailinreplyto: {}
+      emailkeywords: {}
+      emailmessageid: {}
+      emailreceived: {}
+      emailreplyto: {}
+      emailreturnpath: {}
+      emailsenderip: {}
+      emailsize: {}
+      emailsource: {}
+      emailsubject: {}
+      emailto: {}
+      emailtocount: {}
+      emailurlclicked: {}
+      endpointhunting: {}
+      entity: {}
+      entitytype: {}
+      entityvalue: {}
+      environmentnotes: {}
+      escalationstatus: {}
+      externalhostname: {}
+      externalip: {}
+      file: {}
+      filehash: {}
+      filename: {}
+      filepath: {}
+      formattedsummary: {}
+      ftpsessioncount: {}
+      ftptotalsessionsizekb: {}
+      ftptotalsessionsizemb: {}
+      generalinformation: {}
+      generalinformationtable: {}
+      honeypieddetails: {}
+      honeypisaga: {}
+      hostip: {}
+      hostiphistory: {}
+      hostname: {}
+      htmlimage: {}
+      httpsessioncount: {}
+      httptotalsessionsizekb: {}
+      httptotalsessionsizemb: {}
+      huntingcontentsource: {}
+      huntingid: {}
+      huntinglabyrinth: {}
+      huntinglabyrinthcomplete: {}
+      huntinglabyrinthna: {}
+      huntingtable: {}
+      huntingtablehtml: {}
+      huntingtaskstatus: {}
+      huntmodelsourcejson: {}
+      id: {}
+      imapsessioncount: {}
+      imaptotalsessionsizemb: {}
+      internalhostname: {}
+      internalip: {}
+      internalmacaddress: {}
+      ipaddress: {}
+      ircsessioncount: {}
+      irctotalsessionsizemb: {}
+      labels: {}
+      lasthours: {}
+      level: {}
+      machinethreatsdetected: {}
+      malwarefamily: {}
+      markdowntest: {}
+      name: {}
+      netwitnessalertdetails: {}
+      netwitnessalertsummary:
+        simple: '<html><body>Alert: ${NetWitness.Alerts.title}<br>Timestamp: ${NetWitness.Alerts.created}<br><a
+          href="${inputs.netwitnessrespondurl}${NetWitness.Alerts.incidentId}">Link
+          to Incident In NetWitness</a><br><img src="http://192.168.1.151/netwitnesslogo.png">'
+      netwitnessdeviceid: {}
+      netwitnesslinks: {}
+      netwitnesslinktoalldata: {}
+      netwitnesslinktopaloaltohistory: {}
+      netwitnesslinktorukushistory: {}
+      netwitnessurl: {}
+      networkhunting: {}
+      networktrafficsummary: {}
+      notesforshifthandoff: {}
+      numberofdays: {}
+      occurred: {}
+      owner: {}
+      passwordsseen: {}
+      phase: {}
+      pop3sessioncount: {}
+      pop3totalsessionsizemb: {}
+      primarycontactemail: {}
+      primarycontactname: {}
+      projectedenddate: {}
+      querysuffixadvanced: {}
+      quicksummary: {}
+      rdpsessioncount: {}
+      rdptotalsessionsizekb: {}
+      rdptotalsessionsizemb: {}
+      replacePlaybook: {}
+      roles: {}
+      severity: {}
+      shamecloud: {}
+      shifthandoffnotes: {}
+      shiftid: {}
+      shiftleader: {}
+      signature: {}
+      sla: {}
+      smtpsessioncount: {}
+      smtptotalsessionsizemb: {}
+      sourceipblob: {}
+      src: {}
+      srcntdomain: {}
+      srcuser: {}
+      sshsessioncount: {}
+      sshtotalsessionsizekb: {}
+      sshtotalsessionsizemb: {}
+      sslsessioncount: {}
+      ssltotalsessionsizekb: {}
+      ssltotalsessionsizemb: {}
+      startdate: {}
+      stophunting: {}
+      systems: {}
+      threatconfirmation: {}
+      timewindow: {}
+      tmpcurrentindex: {}
+      tmpnumelements: {}
+      tophostsbyprotocol: {}
+      toptalkercharts: {}
+      toptalkersdesthost: {}
+      toptalkersdestip: {}
+      toptalkerssourceip: {}
+      totalbytesreceivedmb: {}
+      totalbytessentkb: {}
+      totalbytessentmb: {}
+      totalnetworktrafficsizekb: {}
+      totalnetworktrafficsizemb: {}
+      totalpayloadreceivedmb: {}
+      totalpayloadsentmb: {}
+      totalsessioncount: {}
+      type: {}
+      user: {}
+      useragentsseen: {}
+      useragentsseeni: {}
+      userassociatedetails: {}
+      userid: {}
+      username: {}
+      usernamesseen: {}
+      vendorid: {}
+      vendorproduct: {}
+      vlan: {}
+      vulnerabilitycategory: {}
+      webhistory: {}
+      whoareyou: {}
+      windowsloginhistory: {}
+      wirelessdatatimestamp: {}
+      wirelessencryptiontype: {}
+      wirelessmap: {}
+      wirelesssessionduration: {}
+      wirelesssessionsbytes: {}
+      wirelesstimeline: {}
+      wirelesstimelinetext: {}
+      wirelessvlan: {}
+      wlanname: {}
+      wordcloud: {}
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 911,
+          "y": 370
+        }
+      }
+    note: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 1066,
+        "width": 1216,
+        "x": 480,
+        "y": 50
+      }
+    }
+  }
+inputs:
+- key: nwourl
+  value: {}
+  required: false
+  description: ""
+- key: netwitnessurl
+  value: {}
+  required: false
+  description: ""
+- key: netwitnessrespondurl
+  value: {}
+  required: false
+  description: ""
+- key: imageroot
+  value: {}
+  required: false
+  description: ""
+outputs: []

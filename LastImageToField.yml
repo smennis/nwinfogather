@@ -1,0 +1,43 @@
+commonfields:
+  id: baead24c-a7cd-445f-873b-b7e997291613
+  version: 3
+name: LastImageToField
+script: |-
+  # LastImageToField
+  # Simple takes the image rendered from the last task, and renders to a field within the incident
+  # Date: 9/22/2018
+  # Author: Sean Ennis, RSA  sean.ennis@rsa.com
+  # Context: #0106
+
+  import urllib
+  import re
+  import time
+
+
+  fileid=""
+  imageurl=""
+  entries = demisto.executeCommand('getEntries', {})
+  fieldname = demisto.args()['fieldname']
+  orchestratorurl = demisto.args()['orchestratorurl']
+
+  for entry in reversed(entries):
+      if entry['File'] == 'url.png':
+          fileid = entry['ID']
+          break
+
+  imageurl = "<http><img src=\"" + orchestratorurl  + fileid + "\"></html>"
+  demisto.executeCommand('setIncident', {fieldname: imageurl})
+
+  demisto.results("Done setting " + fieldname + " to last rendered URL." + imageurl)
+type: python
+tags: []
+enabled: true
+args:
+- name: fieldname
+  required: true
+  description: Field to set to the image link
+- name: orchestratorurl
+  required: true
+  description: path to orchestrator, eg https://[ip]/entry/download/
+scripttarget: 0
+runonce: false

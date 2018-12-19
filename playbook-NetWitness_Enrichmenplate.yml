@@ -1,0 +1,769 @@
+id: a2814384-5a22-4d73-86b6-cd7dd2a97f05
+version: 6
+name: NetWitness Enrichment
+description: "#0106\nGeneral netwitness enrichment playbook - when given an entity
+  type of user, machine, or IP address, enrich and populate the incident with richer
+  information.\n\nRequired incident fields: \n\n  - General Information Table. Type:
+  HTML\n - Network Traffic Summary. Type: Markdown\n - Windows Login History. Type:
+  Markdown\n\nNote that these could be any fields - just ensure the correct type,
+  and that the tasks get modified accordingly."
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: 0f14653d-37e6-4d6e-8534-fb20ab39879c
+    type: start
+    task:
+      id: 0f14653d-37e6-4d6e-8534-fb20ab39879c
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "13"
+      - "1"
+      - "3"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 910,
+          "y": 51
+        }
+      }
+    note: false
+  "1":
+    id: "1"
+    taskid: 7c28c079-8527-4a72-8825-61ed689e317b
+    type: title
+    task:
+      id: 7c28c079-8527-4a72-8825-61ed689e317b
+      version: -1
+      name: Windows Authentication Enrichment
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "4"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 195
+        }
+      }
+    note: false
+  "3":
+    id: "3"
+    taskid: c68f94ca-82b6-4be0-8cf5-7cf9d851a50f
+    type: title
+    task:
+      id: c68f94ca-82b6-4be0-8cf5-7cf9d851a50f
+      version: -1
+      name: Antivirus Enrichment
+      type: title
+      iscommand: false
+      brand: ""
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 910,
+          "y": 195
+        }
+      }
+    note: false
+  "4":
+    id: "4"
+    taskid: 190cea4d-e38b-45f2-85c5-465bc8ac7443
+    type: condition
+    task:
+      id: 190cea4d-e38b-45f2-85c5-465bc8ac7443
+      version: -1
+      name: Enrichment Based on Entity Type
+      type: condition
+      iscommand: false
+      brand: ""
+    nexttasks:
+      IP Address:
+      - "10"
+      Machine:
+      - "6"
+      User:
+      - "5"
+    separatecontext: false
+    conditions:
+    - label: User
+      condition:
+      - - operator: isEqualString
+          left:
+            value:
+              simple: incident.entitytype
+            iscontext: true
+          right:
+            value:
+              simple: User
+    - label: Machine
+      condition:
+      - - operator: isEqualString
+          left:
+            value:
+              simple: incident.entitytype
+            iscontext: true
+          right:
+            value:
+              simple: Machine
+    - label: IP Address
+      condition:
+      - - operator: isEqualString
+          left:
+            value:
+              simple: incident.entitytype
+            iscontext: true
+          right:
+            value:
+              simple: IP Address
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 340
+        }
+      }
+    note: false
+  "5":
+    id: "5"
+    taskid: f829c0e9-01a4-4c87-8def-dd001d423dfd
+    type: regular
+    task:
+      id: f829c0e9-01a4-4c87-8def-dd001d423dfd
+      version: -1
+      name: Windows Authentication History for User
+      scriptName: NetWitnessQueryToTable
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "8"
+    scriptarguments:
+      lasthours:
+        complex:
+          root: incident
+          filters:
+          - - operator: greaterThan
+              left:
+                value:
+                  simple: incident.timewindow
+                iscontext: true
+              right:
+                value:
+                  simple: "0"
+          accessor: timewindow
+      query:
+        simple: SELECT sessionid, logon.type, event.time, event.computer, user.dst,
+          ec.activity, host.src,  ec.outcome, msg WHERE user.dst='${incident.entityvalue}'
+          && reference.id='4624','4634' && host.src exists
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 51,
+          "y": 515
+        }
+      }
+    note: false
+  "6":
+    id: "6"
+    taskid: 3b976e2e-8a6b-4b21-8829-fd1b510900d0
+    type: regular
+    task:
+      id: 3b976e2e-8a6b-4b21-8829-fd1b510900d0
+      version: -1
+      name: Windows Authentication History for Machine
+      scriptName: NetWitnessQueryToTable
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "8"
+    scriptarguments:
+      lasthours:
+        complex:
+          root: incident
+          filters:
+          - - operator: greaterThan
+              left:
+                value:
+                  simple: incident.timewindow
+                iscontext: true
+              right:
+                value:
+                  simple: "0"
+          accessor: timewindow
+      query:
+        simple: SELECT sessionid, event.time, logon.type, user.dst, ec.activity, host.src,
+          event.computer, ec.outcome WHERE host.src='${incident.entityvalue}' && reference.id='4624','4634'
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 515
+        }
+      }
+    note: false
+  "8":
+    id: "8"
+    taskid: 21f5fc0e-de78-43ae-814d-4e930aaaacca
+    type: regular
+    task:
+      id: 21f5fc0e-de78-43ae-814d-4e930aaaacca
+      version: -1
+      name: Set Windows Auth Summary Table
+      script: Builtin|||setIncident
+      type: regular
+      iscommand: true
+      brand: Builtin
+    scriptarguments:
+      addLabels: {}
+      app: {}
+      assetid: {}
+      attachmentcount: {}
+      attachmentextension: {}
+      attachmenthash: {}
+      attachmentid: {}
+      attachmentname: {}
+      attachmentsize: {}
+      attachmenttype: {}
+      bugtraq: {}
+      customFields: {}
+      cve: {}
+      cvss: {}
+      dest: {}
+      destntdomain: {}
+      details: {}
+      duration: {}
+      emailbcc: {}
+      emailbody: {}
+      emailbodyformat: {}
+      emailbodyhtml: {}
+      emailcc: {}
+      emailclientname: {}
+      emailfrom: {}
+      emailinreplyto: {}
+      emailkeywords: {}
+      emailmessageid: {}
+      emailreceived: {}
+      emailreplyto: {}
+      emailreturnpath: {}
+      emailsenderip: {}
+      emailsize: {}
+      emailsource: {}
+      emailsubject: {}
+      emailto: {}
+      emailtocount: {}
+      emailurlclicked: {}
+      entitytype: {}
+      entityvalue: {}
+      filehash: {}
+      filename: {}
+      filepath: {}
+      generalinformation: {}
+      id: {}
+      labels: {}
+      machinethreatsdetected: {}
+      malwarefamily: {}
+      name: {}
+      occurred: {}
+      owner: {}
+      phase: {}
+      replacePlaybook: {}
+      roles: {}
+      severity: {}
+      signature: {}
+      sla: {}
+      src: {}
+      srcntdomain: {}
+      srcuser: {}
+      systems: {}
+      type: {}
+      user: {}
+      userassociatedetails: {}
+      vendorid: {}
+      vendorproduct: {}
+      vulnerabilitycategory: {}
+      windowsloginhistory:
+        simple: ${mdTable}
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 480,
+          "y": 690
+        }
+      }
+    note: false
+  "9":
+    id: "9"
+    taskid: 82e46efd-36a6-495f-8297-081a5f97864d
+    type: regular
+    task:
+      id: 82e46efd-36a6-495f-8297-081a5f97864d
+      version: -1
+      name: Fill Entity Information (user, IP, hostname) If Possible
+      scriptName: NetWitnessEntityInfo
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "11"
+    scriptarguments:
+      additionalipclause:
+        simple: reference.id='4624'
+      additionalmachineclause:
+        simple: reference.id='4624'
+      additionaluserclause:
+        simple: reference.id='4624'
+      entitytype:
+        simple: ${incident.entitytype}
+      entityvalue:
+        simple: ${incident.entityvalue}
+      lasthours:
+        simple: "24"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 1555,
+          "y": 340
+        }
+      }
+    note: false
+  "10":
+    id: "10"
+    taskid: e8fd4427-19b3-42f3-8600-2a3ff6f82a65
+    type: regular
+    task:
+      id: e8fd4427-19b3-42f3-8600-2a3ff6f82a65
+      version: -1
+      name: Windows Authentication History for IP
+      scriptName: NetWitnessQueryToTable
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "8"
+    scriptarguments:
+      lasthours: {}
+      query:
+        simple: SELECT sessionid, event.time, logon.type, user.dst, ec.activity, host.src,
+          event.computer, ec.outcome WHERE ip.src=${incident.entityvalue} && reference.id='4624','4634'
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 910,
+          "y": 515
+        }
+      }
+    note: false
+  "11":
+    id: "11"
+    taskid: 5eedbea4-baf7-4354-8a0e-aa9d05950141
+    type: regular
+    task:
+      id: 5eedbea4-baf7-4354-8a0e-aa9d05950141
+      version: -1
+      name: Set User, Machine, IP Fields and HTML Table
+      script: Builtin|||setIncident
+      type: regular
+      iscommand: true
+      brand: Builtin
+    nexttasks:
+      '#none#':
+      - "14"
+    scriptarguments:
+      addLabels: {}
+      app: {}
+      assetid: {}
+      attachmentcount: {}
+      attachmentextension: {}
+      attachmenthash: {}
+      attachmentid: {}
+      attachmentname: {}
+      attachmentsize: {}
+      attachmenttype: {}
+      bugtraq: {}
+      customFields: {}
+      cve: {}
+      cvss: {}
+      dest: {}
+      destntdomain: {}
+      details: {}
+      duration: {}
+      emailbcc: {}
+      emailbody: {}
+      emailbodyformat: {}
+      emailbodyhtml: {}
+      emailcc: {}
+      emailclientname: {}
+      emailfrom: {}
+      emailinreplyto: {}
+      emailkeywords: {}
+      emailmessageid: {}
+      emailreceived: {}
+      emailreplyto: {}
+      emailreturnpath: {}
+      emailsenderip: {}
+      emailsize: {}
+      emailsource: {}
+      emailsubject: {}
+      emailto: {}
+      emailtocount: {}
+      emailurlclicked: {}
+      entitytype: {}
+      entityvalue: {}
+      filehash: {}
+      filename: {}
+      filepath: {}
+      generalinformation: {}
+      generalinformationtable:
+        simple: ${htmlTableEntity}
+      hostip:
+        simple: ${Last IP}
+      hostiphistory:
+        simple: ${IP Address}
+      hostname:
+        simple: ${Machine}
+      id: {}
+      labels: {}
+      machinethreatsdetected: {}
+      malwarefamily: {}
+      name: {}
+      netwitnessalertsummary: {}
+      networktrafficsummary: {}
+      occurred: {}
+      owner: {}
+      phase: {}
+      replacePlaybook: {}
+      roles: {}
+      severity: {}
+      signature: {}
+      sla: {}
+      src: {}
+      srcntdomain: {}
+      srcuser: {}
+      systems: {}
+      timewindow: {}
+      type: {}
+      user: {}
+      userassociatedetails: {}
+      username:
+        simple: ${User}
+      vendorid: {}
+      vendorproduct: {}
+      vulnerabilitycategory: {}
+      windowsloginhistory: {}
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 1555,
+          "y": 515
+        }
+      }
+    note: false
+  "13":
+    id: "13"
+    taskid: 81a0d176-2fca-404e-8fa4-b53a75a5d0c6
+    type: title
+    task:
+      id: 81a0d176-2fca-404e-8fa4-b53a75a5d0c6
+      version: -1
+      name: Get User, Machine, IP Info
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "9"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 1555,
+          "y": 195
+        }
+      }
+    note: false
+  "14":
+    id: "14"
+    taskid: 4f714f29-c246-4bfe-8627-c0d49f187738
+    type: title
+    task:
+      id: 4f714f29-c246-4bfe-8627-c0d49f187738
+      version: -1
+      name: Network Packet Enrichment
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "15"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 1555,
+          "y": 705
+        }
+      }
+    note: false
+  "15":
+    id: "15"
+    taskid: 7e76b837-18c8-4fb0-8ab5-279372b5f6e9
+    type: condition
+    task:
+      id: 7e76b837-18c8-4fb0-8ab5-279372b5f6e9
+      version: -1
+      name: Internal IP Found?
+      type: condition
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#default#':
+      - "17"
+      "yes":
+      - "16"
+    separatecontext: false
+    conditions:
+    - label: "yes"
+      condition:
+      - - operator: isNotEqualString
+          left:
+            value:
+              simple: incident.hostip
+            iscontext: true
+          right:
+            value:
+              simple: undetermined
+    view: |-
+      {
+        "position": {
+          "x": 1555,
+          "y": 865
+        }
+      }
+    note: false
+  "16":
+    id: "16"
+    taskid: cad95930-6ae0-420b-88db-9edfbcd8888e
+    type: regular
+    task:
+      id: cad95930-6ae0-420b-88db-9edfbcd8888e
+      version: -1
+      name: Get Network Summary
+      scriptName: NetWitnessNetStats
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "19"
+    scriptarguments:
+      lasthours:
+        simple: "24"
+      netwitnessurl:
+        simple: ${inputs.netwitnessurl}
+      whereclause:
+        simple: ip.src=${incident.hostip}
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 1340,
+          "y": 1168
+        }
+      }
+    note: false
+  "17":
+    id: "17"
+    taskid: 48d29848-1849-47df-8ac2-adad3c1cd6d3
+    type: title
+    task:
+      id: 48d29848-1849-47df-8ac2-adad3c1cd6d3
+      version: -1
+      name: No IP for Network Enrichment
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "20"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 1850,
+          "y": 1160
+        }
+      }
+    note: false
+  "19":
+    id: "19"
+    taskid: 7961bf39-3ba2-4e25-896c-8fba26612288
+    type: regular
+    task:
+      id: 7961bf39-3ba2-4e25-896c-8fba26612288
+      version: -1
+      name: Set Markdown Table
+      script: Builtin|||setIncident
+      type: regular
+      iscommand: true
+      brand: Builtin
+    nexttasks:
+      '#none#':
+      - "20"
+    scriptarguments:
+      addLabels: {}
+      app: {}
+      assetid: {}
+      attachmentcount: {}
+      attachmentextension: {}
+      attachmenthash: {}
+      attachmentid: {}
+      attachmentname: {}
+      attachmentsize: {}
+      attachmenttype: {}
+      bugtraq: {}
+      customFields: {}
+      cve: {}
+      cvss: {}
+      dest: {}
+      destntdomain: {}
+      details: {}
+      duration: {}
+      emailbcc: {}
+      emailbody: {}
+      emailbodyformat: {}
+      emailbodyhtml: {}
+      emailcc: {}
+      emailclientname: {}
+      emailfrom: {}
+      emailinreplyto: {}
+      emailkeywords: {}
+      emailmessageid: {}
+      emailreceived: {}
+      emailreplyto: {}
+      emailreturnpath: {}
+      emailsenderip: {}
+      emailsize: {}
+      emailsource: {}
+      emailsubject: {}
+      emailto: {}
+      emailtocount: {}
+      emailurlclicked: {}
+      entitytype: {}
+      entityvalue: {}
+      filehash: {}
+      filename: {}
+      filepath: {}
+      generalinformation: {}
+      hostip: {}
+      hostiphistory: {}
+      hostname: {}
+      id: {}
+      labels: {}
+      machinethreatsdetected: {}
+      malwarefamily: {}
+      name: {}
+      netwitnessalertsummary: {}
+      networktrafficsummary:
+        simple: ${mdTableNetwork}
+      occurred: {}
+      owner: {}
+      phase: {}
+      replacePlaybook: {}
+      roles: {}
+      severity: {}
+      signature: {}
+      sla: {}
+      src: {}
+      srcntdomain: {}
+      srcuser: {}
+      systems: {}
+      timewindow: {}
+      type: {}
+      user: {}
+      userassociatedetails: {}
+      username: {}
+      vendorid: {}
+      vendorproduct: {}
+      vulnerabilitycategory: {}
+      windowsloginhistory: {}
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 1340,
+          "y": 1353
+        }
+      }
+    note: false
+  "20":
+    id: "20"
+    taskid: cb7427a1-d712-478a-8a11-68b947f57cc0
+    type: title
+    task:
+      id: cb7427a1-d712-478a-8a11-68b947f57cc0
+      version: -1
+      name: Complete
+      type: title
+      iscommand: false
+      brand: ""
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 1555,
+          "y": 1600
+        }
+      }
+    note: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 1614,
+        "width": 2179,
+        "x": 51,
+        "y": 51
+      }
+    }
+  }
+inputs:
+- key: nwourl
+  value: {}
+  required: false
+  description: ""
+- key: netwitnessurl
+  value: {}
+  required: false
+  description: ""
+- key: netwitnessrespondurl
+  value: {}
+  required: false
+  description: ""
+- key: imageroot
+  value: {}
+  required: false
+  description: ""
+outputs: []

@@ -1,0 +1,103 @@
+commonfields:
+  id: 04e16ce3-9817-44ba-8af1-7e7fd4faa03c
+  version: 4
+name: NetWitnessQueryToTable
+script: |-
+  # NetWitness QueryToTable
+  # Take arbitrary netwitness queries, filter and format results for display in Incident Summary fields
+  # Date: 9/22/2018
+  # Author: Sean Ennis, RSA  sean.ennis@rsa.com
+  # Context: #0106
+
+  import urllib
+
+  ########### FUNCTION - Simple list deduplication
+  def dedupList(list):
+      finalist=[]
+      for element in list:
+          if element not in finalist:
+              finalist.append(element)
+      return finalist
+  ########### END FUNCTION
+
+  ### These need to be dynamically determined in playbook eventually
+  maxsize = 500 # safety valve
+  metakeepers = ['event.time','user.dst','host.src','ec.activity', 'event.computer', 'ec.outcome']  # of the meta passed in the query, which ones to display
+  timekeys = ['event.time','time']
+  sortby = 'event.time'
+  maxrows = 50
+  logontypes = {'2':'Interactive','3':'Network','5':'Service','10':'Remote'}
+  ###
+
+  query = demisto.args()['query']
+  if demisto.get(demisto.args(), 'lasthours'):
+      lasthours = demisto.args()['lasthours']
+  else:
+      lasthours = 24 # default to 24 hour window if no value given
+
+  tabletitle = "Last 50 Windows Authentication Events (reference.id 4624,4634) over the last " + str(lasthours) + " hours"
+  tmpTable = {}
+  tmpList = []
+  sortedhistory = []
+  res = demisto.executeCommand("netwitness-query", {'query': query, 'lastHours': lasthours, 'threshold':maxsize})
+
+  # If result set isn't empty, iterate through and aggregate results into a single list (each meta value is returned as it's own element)
+  if res[0]['Contents'] != "No results found.":
+
+      for item in res[0]['Contents']:
+          if 'results' in item:
+              tmpList.extend(item['results']['fields'])
+      index = -1
+      history=[]
+
+      for meta in tmpList: # Run through the entire list - each time we hit a new session ID, append a new element to the history table - future should us 'group' values for robustness
+          if meta['type'] == 'sessionid':
+              index +=1
+              history.append({})  # Intentionally keepin sessionid out of the table, although this is a good place to create a link to the specific event
+          else:
+              if meta['type'] == 'host.src':
+                  demisto.results("FOUND HOST SOURCE")
+              if meta['type'] in metakeepers:
+                  if meta['type'] in timekeys:
+                      history[index][meta['type']] = time.strftime('%m/%d/%Y %H:%M:%S', time.gmtime(meta['value']))
+                  elif meta['type'] == 'logon.type':
+                      history[index][meta['type']] = logontypes[meta['value']]
+                  else:
+                      history[index][meta['type']] = meta['value']
+
+      # Dedup, sort, trim
+      sortedhistory = dedupList(history)
+      sortedhistory = sorted(history, key=lambda k: k[sortby])
+      if len(sortedhistory) > maxrows:
+          sortedhistory = sortedhistory[-maxrows:]
+
+      # build formatted markdown table
+      mdTable = tableToMarkdown(tabletitle, sortedhistory, "")
+
+      demisto.results({
+          "Type": 1,
+          "Contents": "Created Markdown Table for NW Query.",
+          "ContentsFormat": "json",
+          "EntryContext": {'mdTable': mdTable},
+          "HumanReadable": mdTable })
+  else:
+      mdTable = "No Results."
+      demisto.results({
+          "Type": 1,
+          "Contents": "No Results for NW Query.",
+          "ContentsFormat": "json",
+          "EntryContext": {'mdTable': mdTable},
+          "HumanReadable": mdTable })
+type: python
+tags: []
+comment: Takes the standard netwitnes query command and returns results in a nicely
+  formatted MD table.
+enabled: true
+args:
+- name: query
+  required: true
+- name: lasthours
+outputs:
+- contextPath: mdTable
+scripttarget: 0
+runonce: false
